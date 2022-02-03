@@ -38,8 +38,11 @@ app.post("/enterJanggi12Room", async(req, res) => {
   const room = await Room.findOne({
     where: { id: req.body.roomId}
   });
-  if (room.player2) {
-    return (res.json({success: false}));
+  if (!room) {
+    return (res.json({success: false, message:"no room"}))
+  }
+  else if (room.player2) {
+    return (res.json({success: false, message:"player2"}));
   } else {
     await Room.update({
       player2: req.body.socketId
@@ -49,6 +52,21 @@ app.post("/enterJanggi12Room", async(req, res) => {
     return (res.json({success: true}))
   }
 })
+
+app.post("/disconnect", async(req, res) => {
+  if (req.body.myTurn === "first") {
+    await Room.update({
+      player2: ""
+    },{
+      where: {id: req.body.roomId}
+    })
+  } else {
+    await Room.destroy({
+      where: {id:req.body.roomId}
+    })
+  }
+})
+
 
 // socket io
 const server = app.listen(port, () => {
@@ -65,6 +83,19 @@ const io = require('socket.io')(server, {
 
 io.on('connection', (socket) => {
   console.log('----- user connected -----');
+  
+  socket.on('disconnect', () => {  
+    console.log("----- user disconnected -----");
+    io.emit('disconnectReply', {
+      socketId: socket.id
+    });
+  })
+
+  socket.on('disconnectReply', (obj) => {
+    io.emit("disconnectReply", {
+      socketId: obj.socketId
+    })
+  })
 
   socket.on("player2Enter", (obj) => {
     io.to(obj.receiver).emit("player2Enter", {
