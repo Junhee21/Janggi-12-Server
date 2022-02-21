@@ -86,6 +86,9 @@ io.on('connection', (socket) => {
   
   socket.on('disconnect', () => {  
     console.log("----- user disconnected -----");
+    Room.destroy({
+      where: {player1: socket.id}
+    })
     io.emit('disconnectReply', {
       socketId: socket.id
     });
